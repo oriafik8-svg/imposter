@@ -1,0 +1,17 @@
+{
+  "name": "zadok80 – קהוט לסבא צדוק",
+  "short_name": "zadok80",
+  "description": "משחק קהוט חגיגי ליום ההולדת ה-80 של סבא צדוק",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#46178f",
+  "theme_color": "#46178f",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>מתחבר ל-Spotify...</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #46178f; color: #fff;
+           display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="msg">מתחבר ל-Spotify...</div>
+  <script>
+    (async function () {
+      const p = new URLSearchParams(location.search);
+      const code = p.get("code");
+      const verifier = localStorage.getItem("sp_verifier");
+      const client = localStorage.getItem("sp_client");
+      const redirect = localStorage.getItem("sp_redirect");
+      const msg = document.getElementById("msg");
+      if (!code || !verifier || !client) { msg.textContent = "שגיאת התחברות"; return; }
+      try {
+        const res = await fetch("https://accounts.spotify.com/api/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: client, grant_type: "authorization_code",
+            code, redirect_uri: redirect, code_verifier: verifier
+          })
+        });
+        const data = await res.json();
+        if (window.opener && data.access_token) {
+          window.opener.postMessage({
+            spotifyToken: data.access_token,
+            spotifyExpires: Date.now() + (data.expires_in || 3600) * 1000
+          }, location.origin);
+        }
+        msg.textContent = "מחובר! אפשר לסגור חלון זה.";
+      } catch (e) { msg.textContent = "שגיאה בהתחברות"; }
+      setTimeout(() => window.close(), 400);
+    })();
+  </script>
+</body>
+</html>
