@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,globe,home_app_logo,thumbs_up_down" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,add_circle,globe,home_app_logo,login,thumbs_up_down" rel="stylesheet">
 <style>
 /* ===== Material Design 3 — baseline "Purple" dynamic color scheme ===== */
 :root{
@@ -247,10 +247,37 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
   transition:left var(--dur-medium) var(--ease-standard), width var(--dur-medium) var(--ease-standard);
 }
 
-/* ===== coming-soon placeholder (Global tab) ===== */
-.comingSoon{text-align:center; padding:60px 20px}
-.comingSoonIcon{font-size:64px; color:var(--md-on-surface-variant); opacity:.5}
-.comingSoonTitle{font-size:20px; font-weight:600; margin:16px 0 8px; color:var(--md-on-surface)}
+/* ===== global — big option cards ===== */
+.bigOption{
+  display:flex; align-items:center; gap:16px; width:100%; text-align:right;
+  padding:22px 20px; margin:12px 0; border:none; border-radius:var(--shape-xl);
+  background:var(--md-primary); color:var(--md-on-primary); overflow:hidden; position:relative;
+}
+.bigOption::after{content:'';position:absolute;inset:0;background:currentColor;opacity:0;transition:opacity var(--dur-micro)}
+.bigOption:hover::after{opacity:var(--state-hover)}
+.bigOption:active{transform:scale(.98); transition:transform var(--dur-micro)}
+.bigOption.tonal{background:var(--md-secondary-container); color:var(--md-on-secondary-container)}
+.bigOptionIcon{font-size:34px; flex-shrink:0}
+.bigOptionText{display:flex; flex-direction:column; gap:2px}
+.bigOptionTitle{font-size:18px; font-weight:700}
+.bigOptionSub{font-size:13px; font-weight:400; opacity:.85}
+
+/* ===== online setup forms (create/join room) ===== */
+.chipRow{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0}
+.chip{
+  padding:10px 20px; font-size:14px; font-weight:600; color:var(--md-on-surface-variant);
+  background:transparent; border:1px solid var(--md-outline); border-radius:var(--shape-full);
+  transition:background var(--dur-short),border-color var(--dur-short),color var(--dur-short);
+}
+.chip.sel{background:var(--md-secondary-container); color:var(--md-on-secondary-container); border-color:transparent; font-weight:700}
+.fieldLabel{font-weight:600; font-size:15px; color:var(--md-on-surface); margin:18px 0 8px}
+.textField{
+  width:100%; padding:15px 16px; font-size:16px; font-weight:500;
+  border:1px solid var(--md-outline); border-radius:var(--shape-xs);
+  background:var(--md-surface); color:var(--md-on-surface);
+}
+.textField:focus{outline:none; border:2px solid var(--md-primary)}
+.serverNotice{background:var(--md-tertiary-container); color:var(--md-on-tertiary-container); border-radius:var(--shape-md); padding:14px 16px; font-size:13px; line-height:19px; text-align:center; margin:16px 0 4px}
 
 /* ===== game history (Profile tab) ===== */
 .historyItem{background:var(--md-surface-container-high); border-radius:var(--shape-lg); padding:14px 16px; margin:10px 0; cursor:pointer; transition:background var(--dur-micro)}
@@ -386,11 +413,59 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 <!-- GLOBAL -->
 <section id="global" class="screen">
   <h1 class="title-sm">גלובל</h1>
-  <div class="comingSoon">
-    <span class="material-symbols-outlined comingSoonIcon">globe</span>
-    <div class="comingSoonTitle">בקרוב</div>
-    <p class="sub">לשחק ביחד בלי להעביר את הטלפון מיד ליד — פרטים בקרוב</p>
+  <p class="sub">שחקו יחד מכל מכשיר, בלי להעביר טלפון מיד ליד</p>
+  <button class="bigOption" onclick="show('onlineCreate')">
+    <span class="material-symbols-outlined bigOptionIcon">add_circle</span>
+    <span class="bigOptionText"><span class="bigOptionTitle">צור משחק</span><span class="bigOptionSub">פתחו חדר חדש והזמינו חברים</span></span>
+  </button>
+  <button class="bigOption tonal" onclick="show('onlineJoin')">
+    <span class="material-symbols-outlined bigOptionIcon">login</span>
+    <span class="bigOptionText"><span class="bigOptionTitle">התחבר למשחק</span><span class="bigOptionSub">הצטרפו לחדר עם קוד</span></span>
+  </button>
+</section>
+
+<!-- ONLINE: CREATE ROOM -->
+<section id="onlineCreate" class="screen">
+  <h1 class="title-sm">יצירת חדר</h1>
+  <p class="sub">הגדירו את המשחק — שחקנים יצטרפו אחרי שהחדר ייפתח</p>
+
+  <div class="fieldLabel">מה השם שלך?</div>
+  <input id="onlineHostName" class="textField" placeholder="השם שלך" maxlength="20">
+
+  <div class="field" style="margin-top:18px">
+    <div class="lbl"><span>מספר מתחזים</span><input id="onlineImpNum" class="numbox" type="number" value="1" min="1" max="10"></div>
+    <input id="onlineImpRange" type="range" min="1" max="10" value="1">
+    <div class="hint">יאומת שוב לפי מספר השחקנים שיצטרפו בפועל (לפחות 2 שחקנים רגילים)</div>
   </div>
+
+  <div class="fieldLabel">מספר סיבובים</div>
+  <div class="chipRow" id="roundsChips">
+    <button class="chip" data-rounds="1">1</button>
+    <button class="chip sel" data-rounds="3">3</button>
+    <button class="chip" data-rounds="5">5</button>
+    <button class="chip" data-rounds="10">10</button>
+  </div>
+
+  <div class="fieldLabel">קטגוריות</div>
+  <div id="onlineCats" class="cats"></div>
+
+  <button class="btn" style="margin-top:22px" onclick="submitCreateRoom()">צור משחק</button>
+  <button class="btn ghost" onclick="show('global')">חזרה</button>
+</section>
+
+<!-- ONLINE: JOIN ROOM -->
+<section id="onlineJoin" class="screen">
+  <h1 class="title-sm">כניסה למשחק</h1>
+  <p class="sub">הכניסו את קוד המשחק שקיבלתם מהמארח</p>
+
+  <div class="fieldLabel">קוד משחק</div>
+  <input id="joinCode" class="textField" placeholder="לדוגמה: K7X4P" maxlength="8" style="text-align:center; font-size:22px; font-weight:700; letter-spacing:4px">
+
+  <div class="fieldLabel">שם השחקן</div>
+  <input id="joinName" class="textField" placeholder="השם שלך" maxlength="20">
+
+  <button class="btn" style="margin-top:22px" onclick="submitJoinRoom()">הצטרף</button>
+  <button class="btn ghost" onclick="show('global')">חזרה</button>
 </section>
 
 <!-- PROFILE -->
@@ -634,6 +709,63 @@ function saveCustom(){
   showSnackbar('נשמר ✓');
 }
 buildCats();
+
+/* ================= ONLINE (Global tab) — UI is ready; wiring to a real backend
+   is pending Firebase project credentials, see summary. Kept fully separate
+   from the local-mode state (selCats, state) so the two modes never collide. ================= */
+const onlineSelCats = new Set();
+function buildOnlineCats(){
+  const box=document.getElementById('onlineCats'); if(!box) return; box.innerHTML='';
+  const list=[];
+  Object.keys(WORDS).forEach(k=>{ if(k==="דברים אקראיים") list.push(CUSTOM_KEY); list.push(k); });
+  list.forEach(cat=>{
+    const el=document.createElement('div');
+    el.className='cat'; el.dataset.cat=cat;
+    const count = cat===CUSTOM_KEY ? customWords.length : WORDS[cat].length;
+    const sub = cat===CUSTOM_KEY ? (count?('מותאם: '+count+' מילים'):'ערכו במסך הבית') : (count+' מילים');
+    el.innerHTML = cat + '<span class="cnt">'+sub+'</span>';
+    if(onlineSelCats.has(cat)) el.classList.add('sel');
+    el.onclick=()=>{
+      if(cat===CUSTOM_KEY && customWords.length===0){ showSnackbar('הוסיפו מילים מותאמות במסך הבית קודם'); return; }
+      if(onlineSelCats.has(cat)){ onlineSelCats.delete(cat); el.classList.remove('sel'); }
+      else { onlineSelCats.add(cat); el.classList.add('sel'); }
+    };
+    box.appendChild(el);
+  });
+}
+buildOnlineCats();
+
+let onlineRounds=3;
+document.querySelectorAll('#roundsChips .chip').forEach(chip=>{
+  chip.onclick=()=>{
+    document.querySelectorAll('#roundsChips .chip').forEach(c=>c.classList.remove('sel'));
+    chip.classList.add('sel');
+    onlineRounds=+chip.dataset.rounds;
+  };
+});
+
+const onlineImpRange=document.getElementById('onlineImpRange'), onlineImpNum=document.getElementById('onlineImpNum');
+function setOnlineImp(v){
+  v=parseInt(v)||1; v=Math.max(1,Math.min(10,v));
+  onlineImpRange.value=v; onlineImpNum.value=v; syncSliderFill(onlineImpRange);
+}
+onlineImpRange.addEventListener('input',e=>setOnlineImp(e.target.value));
+onlineImpNum.addEventListener('input',e=>{ if(e.target.value!=='') setOnlineImp(e.target.value); });
+onlineImpNum.addEventListener('blur',e=>setOnlineImp(e.target.value));
+setOnlineImp(1);
+
+function submitCreateRoom(){
+  const name=document.getElementById('onlineHostName').value.trim();
+  if(!name){ showSnackbar('הכניסו שם שחקן קודם'); return; }
+  if(onlineSelCats.size===0){ showSnackbar('בחרו לפחות קטגוריה אחת'); return; }
+  showSnackbar('כדי לפתוח חדר אמיתי צריך לחבר שרת — בקרוב! 🚧');
+}
+function submitJoinRoom(){
+  const code=document.getElementById('joinCode').value.trim();
+  const name=document.getElementById('joinName').value.trim();
+  if(!code || !name){ showSnackbar('מלאו קוד משחק ושם שחקן'); return; }
+  showSnackbar('כדי להתחבר לחדר אמיתי צריך לחבר שרת — בקרוב! 🚧');
+}
 
 /* ================= CREATE GAME ================= */
 function getPool(){
