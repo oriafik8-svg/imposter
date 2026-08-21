@@ -254,8 +254,10 @@ function saveUsed(){ try{ localStorage.setItem('impostor_used', JSON.stringify([
 let state = {
   players:3, impostors:1, selectedCats:[],
   names:[], assignments:[], // {name, word, clue, isImp}
-  word:"", impNames:[], cardIndex:0
+  word:"", impNames:[], cardIndex:0,
+  lastStarter:null, starterStreak:0
 };
+const MAX_STARTER_STREAK = 2; // same player can't start more than this many rounds in a row
 
 /* ================= HELPERS ================= */
 function show(id){
@@ -427,8 +429,16 @@ function startDeal(){
   state.assignments=state.names.map((name,i)=>({
     name, isImp:idxs.includes(i), word:state.word, clue
   }));
-  // pick a random player to start the round
-  state.starter=state.names[Math.floor(Math.random()*state.names.length)];
+  // pick a random player to start the round, but never let the same player start
+  // more than MAX_STARTER_STREAK rounds in a row
+  let starterPool = state.names;
+  if(state.starterStreak >= MAX_STARTER_STREAK && state.names.length > 1){
+    starterPool = state.names.filter(n=>n!==state.lastStarter);
+  }
+  const newStarter = starterPool[Math.floor(Math.random()*starterPool.length)];
+  state.starterStreak = (newStarter===state.lastStarter) ? state.starterStreak+1 : 1;
+  state.lastStarter = newStarter;
+  state.starter = newStarter;
   document.getElementById('starter').textContent=state.starter+' מתחיל!';
   state.cardIndex=0;
   show('cards');
