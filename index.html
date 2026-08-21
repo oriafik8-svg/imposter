@@ -146,6 +146,15 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 .pm button{flex:1; font-size:22px; font-weight:600; padding:12px; background:var(--md-secondary-container); border:none; border-radius:var(--shape-lg); color:var(--md-on-secondary-container); transition:filter .18s}
 .pm button:hover{filter:brightness(.95)}
 
+/* ===== custom words — word + hint pair ===== */
+.customRow{display:flex; align-items:stretch; gap:8px; margin:8px 0}
+.customInputs{flex:1; display:flex; flex-direction:column; gap:6px; background:var(--md-surface-container-high); border-radius:var(--shape-lg); padding:10px}
+.customInputs input{width:100%; padding:12px 14px; font-size:15px; font-weight:500; border:1px solid var(--md-outline); border-radius:var(--shape-xs); background:var(--md-surface); color:var(--md-on-surface)}
+.customInputs input:focus{outline:none; border:2px solid var(--md-primary)}
+.customInputs input.clueInput{font-size:14px}
+.customDel{width:40px; flex-shrink:0; align-self:center; border:none; border-radius:50%; background:var(--md-surface-container-high); color:var(--md-on-surface-variant); font-size:15px; height:40px; transition:background .15s,color .15s}
+.customDel:hover{background:var(--md-error-container); color:var(--md-on-error-container)}
+
 /* ===== cards ===== */
 #cardWrap{perspective:1400px; position:relative; height:62vh; max-height:560px; margin-top:18px}
 .card{
@@ -233,9 +242,9 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 <!-- CUSTOM -->
 <section id="custom" class="screen">
   <h1 class="title-sm">קטגוריה מותאמת אישית</h1>
-  <p class="sub">כתבו מילים בלבד — הרמז ייווצר אוטומטית כדי לא להסגיר לכם אותו</p>
+  <p class="sub">לכל מילה כתבו גם רמז משלה — זה מה שהמתחזה יראה</p>
   <div id="customList"></div>
-  <button class="btn ghost" onclick="addCustomRow('')">+ הוסף מילה</button>
+  <button class="btn ghost" onclick="addCustomRow()">+ הוסף מילה ורמז</button>
   <button class="btn" onclick="saveCustom()">שמור וחזרה</button>
 </section>
 
@@ -297,8 +306,12 @@ const WORDS = {
 "מקומות":[["ירושלים", "עתיקה"],["תל אביב", "חוף"],["חיפה", "נמל"],["אילת", "אלמוגים"],["באר שבע", "מדבר"],["טבריה", "מעיינות חמים"],["צפת", "מיסטיקה"],["אשדוד", "נמל"],["נתניה", "צוקים"],["הרצליה", "הייטק"],["ים המלח", "מינרלים"],["מצדה", "רכבל"],["הכותל המערבי", "פתקים"],["כנרת", "דייגים"],["ניו יורק", "גורדי שחקים"],["לונדון", "גשר"],["פריז", "רומנטיקה"],["טוקיו", "צפיפות"],["רומא", "עתיקה"],["ברלין", "חומה"],["מוסקבה", "כיכר"],["דובאי", "מדבר"],["ברצלונה", "אדריכלות"],["אמסטרדם", "אופניים"],["קהיר", "נילוס"],["איסטנבול", "שתי יבשות"],["בנגקוק", "טוקטוק"],["לוס אנג'לס", "חוף"],["סידני", "מפרש"],["ריו דה ז'נרו", "פסל"],["שנגחאי", "גורדי שחקים"],["ונציה", "תעלות"],["אתונה", "פילוסופיה"],["הוואי", "גלישה"],["אנטארקטיקה", "קרח"],["סהרה", "חול"],["יער הגשם האמזוני", "נהר"],["גרנד קניון", "סלעים"]]
 };
 const CUSTOM_KEY = "מותאם אישית";
+// each entry is a [word, clue] pair the player writes themselves
 let customWords = [];
-try{ customWords = JSON.parse(localStorage.getItem('impostor_custom')||'[]'); }catch(e){ customWords=[]; }
+try{
+  const raw = JSON.parse(localStorage.getItem('impostor_custom')||'[]');
+  customWords = raw.map(x => Array.isArray(x) ? [x[0]||'', x[1]||''] : [x||'', '']); // migrate old word-only format
+}catch(e){ customWords=[]; }
 let usedWords = new Set();
 try{ usedWords = new Set(JSON.parse(localStorage.getItem('impostor_used')||'[]')); }catch(e){}
 function saveUsed(){ try{ localStorage.setItem('impostor_used', JSON.stringify([...usedWords])); }catch(e){} }
@@ -378,20 +391,30 @@ function buildCats(){
 }
 function openCustom(){
   const list=document.getElementById('customList'); list.innerHTML='';
-  if(customWords.length===0) addCustomRow('');
-  else customWords.forEach(w=>addCustomRow(w));
+  if(customWords.length===0) addCustomRow();
+  else customWords.forEach(pair=>addCustomRow(pair));
   show('custom');
 }
-function addCustomRow(val){
+function addCustomRow(pair){
+  pair = pair || ['',''];
   const list=document.getElementById('customList');
-  const row=document.createElement('div'); row.className='nameRow';
-  const inp=document.createElement('input'); inp.placeholder='מילה'; inp.value=val||'';
-  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addCustomRow(''); } });
-  row.appendChild(inp); list.appendChild(row);
-  if(!val) inp.focus();
+  const row=document.createElement('div'); row.className='customRow';
+  const inputs=document.createElement('div'); inputs.className='customInputs';
+  const wordInp=document.createElement('input'); wordInp.className='wordInput'; wordInp.placeholder='מילה'; wordInp.value=pair[0]||'';
+  const clueInp=document.createElement('input'); clueInp.className='clueInput'; clueInp.placeholder='רמז (מה שהמתחזה יראה)'; clueInp.value=pair[1]||'';
+  wordInp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); clueInp.focus(); } });
+  clueInp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addCustomRow(); } });
+  inputs.appendChild(wordInp); inputs.appendChild(clueInp);
+  const delBtn=document.createElement('button'); delBtn.type='button'; delBtn.className='customDel'; delBtn.textContent='✕';
+  delBtn.onclick=()=>row.remove();
+  row.appendChild(inputs); row.appendChild(delBtn);
+  list.appendChild(row);
+  if(!pair[0]) wordInp.focus();
 }
 function saveCustom(){
-  customWords=[...document.querySelectorAll('#customList input')].map(i=>i.value.trim()).filter(Boolean);
+  customWords=[...document.querySelectorAll('#customList .customRow')]
+    .map(row=>[row.querySelector('.wordInput').value.trim(), row.querySelector('.clueInput').value.trim()])
+    .filter(([w])=>w);
   if(customWords.length>0) selCats.add(CUSTOM_KEY); else selCats.delete(CUSTOM_KEY);
   try{ localStorage.setItem('impostor_custom', JSON.stringify(customWords)); }catch(e){}
   buildCats(); show('home');
@@ -403,11 +426,7 @@ function getPool(){
   let pool=[];
   selCats.forEach(c=>{
     if(c===CUSTOM_KEY){
-      customWords.forEach(w=>{
-        const others=customWords.filter(x=>x!==w);
-        const clue = others.length ? others[Math.floor(Math.random()*others.length)] : '—';
-        pool.push([w,clue]);
-      });
+      customWords.forEach(([w,clue])=>{ pool.push([w, clue ? clue : '—']); });
     } else pool=pool.concat(WORDS[c]);
   });
   return pool;
