@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,globe,home_app_logo,thumbs_up_down" rel="stylesheet">
 <style>
 /* ===== Material Design 3 — baseline "Purple" dynamic color scheme ===== */
 :root{
@@ -37,6 +38,17 @@
   --elev-4:0 1px 3px rgba(0,0,0,.30), 0 6px 10px 4px rgba(0,0,0,.15);
   /* state-layer opacities */
   --state-hover:.08; --state-focus:.10; --state-press:.10;
+
+  /* ===== motion system ===== */
+  /* durations */
+  --dur-micro:100ms;   /* hover / press / tiny state changes */
+  --dur-short:200ms;   /* toggle / snackbar / chip select */
+  --dur-medium:350ms;  /* section movement / card flip / nav */
+  --dur-long:500ms;    /* only when truly justified */
+  /* easing — standard = most transitions, emphasized = entrances that should feel lively */
+  --ease-standard:cubic-bezier(.2,0,0,1);
+  --ease-emphasized:cubic-bezier(.3,0,.2,1.4);
+  --ease-exit:cubic-bezier(.3,0,1,1);
 }
 body.dark{
   --md-primary:#D0BCFF; --md-on-primary:#381E72;
@@ -60,12 +72,16 @@ html,body{margin:0;padding:0;height:100%}
 body{
   font-family:'Rubik','Segoe UI',Arial,Helvetica,sans-serif;
   background:var(--md-background); color:var(--md-on-background);
-  transition:background .4s,color .4s;
+  transition:background var(--dur-medium),color var(--dur-medium);
   overflow-x:hidden; touch-action:manipulation;
 }
-.screen{display:none; min-height:100vh; padding:18px 16px 40px; max-width:640px; margin:0 auto;}
-.screen.active{display:block; animation:fade .35s ease;}
-@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.screen{display:none; min-height:100vh; padding:18px 16px 96px; max-width:640px; margin:0 auto;}
+.screen.active{display:block; animation:screenEnter var(--dur-medium) var(--ease-emphasized);}
+.screen.leaving{display:block; position:fixed; inset:0; margin:0 auto; animation:screenExit var(--dur-short) var(--ease-exit) forwards; pointer-events:none; z-index:1}
+@keyframes screenEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes screenExit{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-6px)}}
+@keyframes rowEnter{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.entering{animation:rowEnter var(--dur-medium) var(--ease-emphasized)}
 /* type scale */
 h1{text-align:center; font-size:32px; line-height:40px; font-weight:600; margin:6px 0 2px; letter-spacing:0}
 h1.title-sm{font-size:24px; line-height:32px}
@@ -78,9 +94,9 @@ button{font-family:inherit; cursor:pointer}
   position:relative; display:block; width:100%; padding:16px 24px; margin:10px 0;
   font-size:16px; font-weight:600; letter-spacing:.1px; color:var(--md-on-primary);
   background:var(--md-primary); border:none; overflow:hidden;
-  border-radius:var(--shape-full); transition:box-shadow .18s,transform .08s;
+  border-radius:var(--shape-full); transition:box-shadow var(--dur-micro),transform var(--dur-micro);
 }
-.btn::after{content:'';position:absolute;inset:0;background:currentColor;opacity:0;transition:opacity .15s}
+.btn::after{content:'';position:absolute;inset:0;background:currentColor;opacity:0;transition:opacity var(--dur-micro)}
 .btn:hover::after{opacity:var(--state-hover)}
 .btn:active{transform:scale(.98)}
 .btn:active::after{opacity:var(--state-press)}
@@ -89,6 +105,8 @@ button{font-family:inherit; cursor:pointer}
 .btn.ghost::after{background:var(--md-primary)}
 .btn.tonal{background:var(--md-secondary-container); color:var(--md-on-secondary-container)}
 .btn.tonal::after{background:var(--md-on-secondary-container)}
+.btn:disabled{background:color-mix(in srgb, var(--md-on-surface) 12%, transparent); color:color-mix(in srgb, var(--md-on-surface) 38%, transparent); cursor:not-allowed}
+.btn:disabled::after{display:none}
 
 /* theme toggle — M3 standard icon button */
 #themeBtn{
@@ -96,7 +114,7 @@ button{font-family:inherit; cursor:pointer}
   width:40px; height:40px; border-radius:50%;
   background:var(--md-surface-container-high); border:none; color:var(--md-on-surface-variant);
   font-size:19px; line-height:1; display:flex; align-items:center; justify-content:center;
-  transition:background .2s;
+  transition:background var(--dur-micro);
 }
 #themeBtn:hover{background:var(--md-surface-container-highest)}
 
@@ -126,7 +144,7 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 .cat{
   padding:14px 10px; text-align:center; font-size:14px; font-weight:500;
   background:transparent; color:var(--md-on-surface-variant); border:1px solid var(--md-outline);
-  border-radius:var(--shape-sm); transition:background .18s,border-color .18s,color .18s; user-select:none;
+  border-radius:var(--shape-sm); transition:background var(--dur-short),border-color var(--dur-short),color var(--dur-short); user-select:none;
 }
 .cat:hover{background:color-mix(in srgb, var(--md-on-surface-variant) 8%, transparent)}
 .cat.sel{background:var(--md-secondary-container); color:var(--md-on-secondary-container); border-color:transparent; font-weight:600}
@@ -143,7 +161,7 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 .nameRow input:focus{outline:none; border:2px solid var(--md-primary)}
 .nameRow .swipeHint{position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between; padding:0 18px; font-size:13px; color:var(--md-on-surface-variant); opacity:.7; z-index:1}
 .pm{display:flex; gap:12px; margin:16px 0}
-.pm button{flex:1; font-size:22px; font-weight:600; padding:12px; background:var(--md-secondary-container); border:none; border-radius:var(--shape-lg); color:var(--md-on-secondary-container); transition:filter .18s}
+.pm button{flex:1; font-size:22px; font-weight:600; padding:12px; background:var(--md-secondary-container); border:none; border-radius:var(--shape-lg); color:var(--md-on-secondary-container); transition:filter var(--dur-micro)}
 .pm button:hover{filter:brightness(.95)}
 
 /* ===== custom words — word + hint pair ===== */
@@ -152,14 +170,14 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 .customInputs input{width:100%; padding:12px 14px; font-size:15px; font-weight:500; border:1px solid var(--md-outline); border-radius:var(--shape-xs); background:var(--md-surface); color:var(--md-on-surface)}
 .customInputs input:focus{outline:none; border:2px solid var(--md-primary)}
 .customInputs input.clueInput{font-size:14px}
-.customDel{width:40px; flex-shrink:0; align-self:center; border:none; border-radius:50%; background:var(--md-surface-container-high); color:var(--md-on-surface-variant); font-size:15px; height:40px; transition:background .15s,color .15s}
+.customDel{width:40px; flex-shrink:0; align-self:center; border:none; border-radius:50%; background:var(--md-surface-container-high); color:var(--md-on-surface-variant); font-size:15px; height:40px; transition:background var(--dur-micro),color var(--dur-micro)}
 .customDel:hover{background:var(--md-error-container); color:var(--md-on-error-container)}
 
 /* ===== cards ===== */
 #cardWrap{perspective:1400px; position:relative; height:62vh; max-height:560px; margin-top:18px}
 .card{
   position:absolute; inset:0; margin:auto; width:100%; max-width:420px; height:100%;
-  transform-style:preserve-3d; transition:transform .55s cubic-bezier(.4,.1,.2,1);
+  transform-style:preserve-3d; transition:transform var(--dur-long) cubic-bezier(.4,.1,.2,1);
   cursor:pointer;
 }
 .card.flipped{transform:rotateY(180deg)}
@@ -186,22 +204,105 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 .starterBox{text-align:center; font-size:24px; font-weight:700; background:var(--md-primary-container); border-radius:var(--shape-lg); padding:20px; margin:6px 0 4px; color:var(--md-on-primary-container)}
 
 /* ===== bottom sheet — M3 modal bottom sheet ===== */
-#sheetBackdrop{position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:60; display:none}
-#sheet{
+.modalBackdrop{position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:60; display:none}
+.modalSheet{
   position:fixed; left:0; right:0; bottom:0; z-index:61; max-width:640px; margin:0 auto;
   background:var(--md-surface-container-low); border-radius:var(--shape-xl) var(--shape-xl) 0 0; box-shadow:var(--elev-1);
-  padding:10px 18px 26px; transform:translateY(100%); transition:transform .3s ease; touch-action:none;
+  padding:10px 18px 26px; transform:translateY(100%); transition:transform var(--dur-medium) var(--ease-standard); touch-action:none;
 }
-#sheet.open{transform:translateY(0)}
+.modalSheet.open{transform:translateY(0)}
 .grabber{width:32px; height:4px; border-radius:var(--shape-full); background:var(--md-outline-variant); margin:6px auto 14px}
-#sheet h3{text-align:center; margin:0 0 14px; font-size:16px; font-weight:600; color:var(--md-on-surface)}
-.sheetName{padding:15px; margin:8px 0; background:var(--md-surface-container-high); border:none; border-radius:var(--shape-md); font-size:16px; font-weight:500; color:var(--md-on-surface); text-align:center; transition:background .18s}
+.modalSheet h3{text-align:center; margin:0 0 14px; font-size:16px; font-weight:600; color:var(--md-on-surface)}
+.sheetName{padding:15px; margin:8px 0; background:var(--md-surface-container-high); border:none; border-radius:var(--shape-md); font-size:16px; font-weight:500; color:var(--md-on-surface); text-align:center; transition:background var(--dur-micro)}
 .sheetName:hover{background:var(--md-surface-container-highest)}
 .spacer{height:8px}
+
+/* ===== icons ===== */
+.material-symbols-outlined{
+  font-family:'Material Symbols Outlined'; font-weight:400; font-style:normal;
+  font-size:24px; line-height:1; letter-spacing:normal; text-transform:none;
+  display:inline-block; white-space:nowrap; word-wrap:normal; direction:ltr;
+  width:1em; height:1em; overflow:hidden; /* clip gracefully if the icon font fails to load */
+  font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+}
+
+/* ===== bottom navigation bar (M3 Labeled Navigation Bar) ===== */
+#bottomNav{
+  position:fixed; left:0; right:0; bottom:0; z-index:70; max-width:640px; margin:0 auto;
+  display:flex; background:var(--md-surface-container); box-shadow:0 -1px 0 var(--md-outline-variant);
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+#bottomNav.hidden{display:none}
+.navItem{
+  position:relative; z-index:1; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; padding:10px 0 12px; background:transparent; border:none; color:var(--md-on-surface-variant);
+}
+.navIconWrap{width:56px; height:32px; border-radius:var(--shape-full); display:flex; align-items:center; justify-content:center}
+.navItem.active{color:var(--md-on-surface)}
+.navItem.active .material-symbols-outlined{font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24}
+.navLabel{font-size:12px; font-weight:500; line-height:16px}
+#navIndicator{
+  position:absolute; border-radius:var(--shape-full); background:var(--md-secondary-container);
+  top:10px; z-index:0; pointer-events:none;
+  transition:left var(--dur-medium) var(--ease-standard), width var(--dur-medium) var(--ease-standard);
+}
+
+/* ===== coming-soon placeholder (Global tab) ===== */
+.comingSoon{text-align:center; padding:60px 20px}
+.comingSoonIcon{font-size:64px; color:var(--md-on-surface-variant); opacity:.5}
+.comingSoonTitle{font-size:20px; font-weight:600; margin:16px 0 8px; color:var(--md-on-surface)}
+
+/* ===== game history (Profile tab) ===== */
+.historyItem{background:var(--md-surface-container-high); border-radius:var(--shape-lg); padding:14px 16px; margin:10px 0; cursor:pointer; transition:background var(--dur-micro)}
+.historyItem:hover{background:var(--md-surface-container-highest)}
+.historyTop{display:flex; justify-content:space-between; align-items:center; margin-bottom:4px}
+.historyCount{font-weight:600; font-size:15px; color:var(--md-on-surface)}
+.historyDate{font-size:12px; color:var(--md-on-surface-variant)}
+.historyNames{font-size:13px; color:var(--md-on-surface-variant); line-height:18px}
+.emptyState{text-align:center; color:var(--md-on-surface-variant); padding:60px 20px; font-size:14px; line-height:20px}
+
+/* ===== snackbar ===== */
+#snackbarWrap{position:fixed; left:0; right:0; bottom:88px; z-index:80; max-width:640px; margin:0 auto; padding:0 16px; display:flex; flex-direction:column; align-items:center; pointer-events:none}
+.snackbar{
+  background:var(--md-inverse-surface); color:var(--md-inverse-on-surface);
+  padding:14px 20px; border-radius:var(--shape-xs); box-shadow:var(--elev-3);
+  font-size:14px; font-weight:500; text-align:center; max-width:100%;
+  margin-top:8px; opacity:0; transform:translateY(12px);
+  transition:opacity var(--dur-short) var(--ease-standard), transform var(--dur-short) var(--ease-standard);
+}
+.snackbar.show{opacity:1; transform:none}
+
+/* ===== feedback compose ===== */
+#feedbackBtn{
+  position:fixed; top:14px; right:14px; z-index:50;
+  width:40px; height:40px; border-radius:50%;
+  background:var(--md-surface-container-high); border:none; color:var(--md-on-surface-variant);
+  display:flex; align-items:center; justify-content:center; transition:background var(--dur-micro);
+}
+#feedbackBtn:hover{background:var(--md-surface-container-highest)}
+#feedbackBtn.hidden{display:none}
+#feedbackText{
+  width:100%; min-height:110px; padding:14px 16px; font-size:15px; font-family:inherit;
+  border:1px solid var(--md-outline); border-radius:var(--shape-md); background:var(--md-surface);
+  color:var(--md-on-surface); resize:vertical;
+}
+#feedbackText:focus{outline:none; border:2px solid var(--md-primary)}
+
+/* ===== reduced motion — the whole motion system is token-driven, so collapsing
+   the duration scale to ~0 shortens/disables essentially every transition and
+   keyframe animation in one place, while state changes stay instant and visible ===== */
+@media (prefers-reduced-motion: reduce){
+  :root{ --dur-micro:0.01ms; --dur-short:0.01ms; --dur-medium:0.01ms; --dur-long:0.01ms; }
+  .screen.active, .screen.leaving, .entering{animation:none}
+  .card{transition:none}
+}
 </style>
 </head>
 <body>
 <button id="themeBtn" onclick="toggleTheme()">🌙</button>
+<button id="feedbackBtn" onclick="openFeedback()" title="שליחת משוב">
+  <span class="material-symbols-outlined">thumbs_up_down</span>
+</button>
 
 <!-- HOME -->
 <section id="home" class="screen active">
@@ -223,7 +324,7 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
   <h2 style="margin:22px 0 4px">קטגוריות</h2>
   <div id="cats" class="cats"></div>
 
-  <button class="btn" style="margin-top:22px" onclick="createGame()">צור משחק</button>
+  <button class="btn" id="createBtn" style="margin-top:22px" onclick="createGame()">צור משחק</button>
 </section>
 
 <!-- NAMES -->
@@ -235,7 +336,7 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
     <button onclick="removePlayer()">−</button>
     <button onclick="addPlayer()">+</button>
   </div>
-  <button class="btn" onclick="startDeal()">חלק כרטיסיות</button>
+  <button class="btn" onclick="beginGame()">חלק כרטיסיות</button>
   <button class="btn ghost" onclick="show('home')">חזרה</button>
 </section>
 
@@ -244,7 +345,7 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
   <h1 class="title-sm">קטגוריה מותאמת אישית</h1>
   <p class="sub">לכל מילה כתבו גם רמז משלה — זה מה שהמתחזה יראה</p>
   <div id="customList"></div>
-  <button class="btn ghost" onclick="addCustomRow()">+ הוסף מילה ורמז</button>
+  <button class="btn ghost" onclick="addCustomRow(null,true)">+ הוסף מילה ורמז</button>
   <button class="btn" onclick="saveCustom()">שמור וחזרה</button>
 </section>
 
@@ -282,13 +383,60 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
   <button class="btn ghost" onclick="goHome()">צא למסך הבית</button>
 </section>
 
+<!-- GLOBAL -->
+<section id="global" class="screen">
+  <h1 class="title-sm">גלובל</h1>
+  <div class="comingSoon">
+    <span class="material-symbols-outlined comingSoonIcon">globe</span>
+    <div class="comingSoonTitle">בקרוב</div>
+    <p class="sub">לשחק ביחד בלי להעביר את הטלפון מיד ליד — פרטים בקרוב</p>
+  </div>
+</section>
+
+<!-- PROFILE -->
+<section id="profile" class="screen">
+  <h1 class="title-sm">פרופיל</h1>
+  <p class="sub">המשחקים הקודמים שלכם — הקישו כדי לשחק שוב עם אותה קבוצה</p>
+  <div id="historyList"></div>
+</section>
+
 <!-- SHEET -->
-<div id="sheetBackdrop" onclick="closeSheet()"></div>
-<div id="sheet">
+<div id="sheetBackdrop" class="modalBackdrop" onclick="closeSheet()"></div>
+<div id="sheet" class="modalSheet">
   <div class="grabber"></div>
   <h3>מי שכח? לחצו על השם</h3>
   <div id="sheetNames"></div>
 </div>
+
+<!-- FEEDBACK -->
+<div id="feedbackBackdrop" class="modalBackdrop" onclick="closeFeedback()"></div>
+<div id="feedbackSheet" class="modalSheet">
+  <div class="grabber"></div>
+  <h3>יש לכם רעיון, באג, או פשוט משהו להגיד?</h3>
+  <textarea id="feedbackText" placeholder="כתבו כאן..."></textarea>
+  <button class="btn" style="margin-top:14px" onclick="sendFeedback()">שליחה</button>
+  <button class="btn ghost" onclick="closeFeedback()">ביטול</button>
+</div>
+
+<!-- SNACKBAR -->
+<div id="snackbarWrap"></div>
+
+<!-- BOTTOM NAV -->
+<nav id="bottomNav">
+  <div id="navIndicator"></div>
+  <button class="navItem active" data-screen="home" onclick="show('home')">
+    <span class="navIconWrap"><span class="material-symbols-outlined">home_app_logo</span></span>
+    <span class="navLabel">בית</span>
+  </button>
+  <button class="navItem" data-screen="global" onclick="show('global')">
+    <span class="navIconWrap"><span class="material-symbols-outlined">globe</span></span>
+    <span class="navLabel">גלובל</span>
+  </button>
+  <button class="navItem" data-screen="profile" onclick="show('profile')">
+    <span class="navIconWrap"><span class="material-symbols-outlined">account_circle</span></span>
+    <span class="navLabel">פרופיל</span>
+  </button>
+</nav>
 
 <script>
 /* ================= WORD DATA ================= */
@@ -326,12 +474,58 @@ let state = {
 const MAX_STARTER_STREAK = 2; // same player can't start more than this many rounds in a row
 
 /* ================= HELPERS ================= */
+const TOP_LEVEL_SCREENS = ['home','global','profile'];
 function show(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  const target=document.getElementById(id);
+  const current=document.querySelector('.screen.active');
+  if(current && current!==target){
+    current.classList.remove('active');
+    current.classList.add('leaving');
+    setTimeout(()=>current.classList.remove('leaving'), 260);
+  }
+  target.classList.add('active');
   window.scrollTo(0,0);
+
+  const nav=document.getElementById('bottomNav');
+  const isTopLevel=TOP_LEVEL_SCREENS.includes(id);
+  if(nav){
+    nav.classList.toggle('hidden', !isTopLevel);
+    if(isTopLevel){
+      document.querySelectorAll('.navItem').forEach(el=>el.classList.toggle('active', el.dataset.screen===id));
+      requestAnimationFrame(positionNavIndicator);
+    }
+  }
+  document.getElementById('feedbackBtn').classList.toggle('hidden', id!=='game');
+  if(id==='profile') buildProfile();
 }
+function positionNavIndicator(){
+  const active=document.querySelector('.navItem.active');
+  const indicator=document.getElementById('navIndicator');
+  const nav=document.getElementById('bottomNav');
+  if(!active || !indicator || nav.classList.contains('hidden')) return;
+  const wrap=active.querySelector('.navIconWrap');
+  const navRect=nav.getBoundingClientRect(), wrapRect=wrap.getBoundingClientRect();
+  indicator.style.width=wrapRect.width+'px';
+  indicator.style.height=wrapRect.height+'px';
+  indicator.style.left=(wrapRect.left-navRect.left)+'px';
+}
+window.addEventListener('resize', positionNavIndicator);
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* ================= SNACKBAR ================= */
+let snackbarTimer=null;
+function showSnackbar(msg){
+  const wrap=document.getElementById('snackbarWrap');
+  clearTimeout(snackbarTimer);
+  wrap.innerHTML='';
+  const el=document.createElement('div'); el.className='snackbar'; el.textContent=msg;
+  wrap.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  snackbarTimer=setTimeout(()=>{
+    el.classList.remove('show');
+    setTimeout(()=>el.remove(),220);
+  },2600);
+}
 
 /* ================= THEME ================= */
 function toggleTheme(){
@@ -385,9 +579,11 @@ function buildCats(){
       if(cat===CUSTOM_KEY){ openCustom(); return; }
       if(selCats.has(cat)){ selCats.delete(cat); el.classList.remove('sel'); }
       else { selCats.add(cat); el.classList.add('sel'); }
+      updateCreateBtn();
     };
     box.appendChild(el);
   });
+  updateCreateBtn();
 }
 function openCustom(){
   const list=document.getElementById('customList'); list.innerHTML='';
@@ -395,18 +591,35 @@ function openCustom(){
   else customWords.forEach(pair=>addCustomRow(pair));
   show('custom');
 }
-function addCustomRow(pair){
+function addCustomRow(pair, animate){
   pair = pair || ['',''];
   const list=document.getElementById('customList');
   const row=document.createElement('div'); row.className='customRow';
+  if(animate) row.classList.add('entering');
   const inputs=document.createElement('div'); inputs.className='customInputs';
   const wordInp=document.createElement('input'); wordInp.className='wordInput'; wordInp.placeholder='מילה'; wordInp.value=pair[0]||'';
   const clueInp=document.createElement('input'); clueInp.className='clueInput'; clueInp.placeholder='רמז (מה שהמתחזה יראה)'; clueInp.value=pair[1]||'';
   wordInp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); clueInp.focus(); } });
-  clueInp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addCustomRow(); } });
+  clueInp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addCustomRow(null,true); } });
   inputs.appendChild(wordInp); inputs.appendChild(clueInp);
   const delBtn=document.createElement('button'); delBtn.type='button'; delBtn.className='customDel'; delBtn.textContent='✕';
-  delBtn.onclick=()=>row.remove();
+  delBtn.onclick=()=>{
+    const below=[...document.querySelectorAll('#customList .customRow')].slice(
+      [...document.querySelectorAll('#customList .customRow')].indexOf(row)+1
+    );
+    const oldTops=below.map(r=>r.getBoundingClientRect().top);
+    row.remove();
+    below.forEach((r,i)=>{
+      const delta=oldTops[i]-r.getBoundingClientRect().top;
+      if(Math.abs(delta)<1) return;
+      r.style.transition='none';
+      r.style.transform='translateY('+delta+'px)';
+      requestAnimationFrame(()=>{
+        r.style.transition='transform var(--dur-medium) var(--ease-standard)';
+        r.style.transform='';
+      });
+    });
+  };
   row.appendChild(inputs); row.appendChild(delBtn);
   list.appendChild(row);
   if(!pair[0]) wordInp.focus();
@@ -418,6 +631,7 @@ function saveCustom(){
   if(customWords.length>0) selCats.add(CUSTOM_KEY); else selCats.delete(CUSTOM_KEY);
   try{ localStorage.setItem('impostor_custom', JSON.stringify(customWords)); }catch(e){}
   buildCats(); show('home');
+  showSnackbar('נשמר ✓');
 }
 buildCats();
 
@@ -431,9 +645,13 @@ function getPool(){
   });
   return pool;
 }
+function updateCreateBtn(){
+  const btn=document.getElementById('createBtn');
+  if(btn) btn.disabled = getPool().length===0;
+}
 function createGame(){
   const pool=getPool();
-  if(pool.length===0){ alert("בחרו לפחות קטגוריה אחת 🙂"); return; }
+  if(pool.length===0){ showSnackbar("בחרו לפחות קטגוריה אחת קודם 🙂"); return; }
   // build default names
   state.names=[];
   for(let i=0;i<state.players;i++) state.names.push("שחקן "+(i+1));
@@ -455,20 +673,53 @@ function buildNames(){
     list.appendChild(row);
   });
 }
+/* FLIP helper: capture row tops before a list mutation, then smoothly slide the
+   surviving rows from their old position to their new one instead of snapping. */
+function captureRowTops(containerId){
+  return [...document.querySelectorAll('#'+containerId+' > div')].map(r=>r.getBoundingClientRect().top);
+}
+function flipRows(containerId, rowSelector, oldTops, insertedAt, removedAt){
+  const rows=[...document.querySelectorAll('#'+containerId+' '+rowSelector)];
+  rows.forEach((row,newIdx)=>{
+    let oldIdx;
+    if(insertedAt!=null){
+      if(newIdx===insertedAt){ row.classList.add('entering'); return; }
+      oldIdx = newIdx<insertedAt ? newIdx : newIdx-1;
+    } else if(removedAt!=null){
+      oldIdx = newIdx<removedAt ? newIdx : newIdx+1;
+    } else return;
+    const oldTop=oldTops[oldIdx];
+    if(oldTop==null) return;
+    const delta=oldTop-row.getBoundingClientRect().top;
+    if(Math.abs(delta)<1) return;
+    row.style.transition='none';
+    row.style.transform='translateY('+delta+'px)';
+    requestAnimationFrame(()=>{
+      row.style.transition='transform var(--dur-medium) var(--ease-standard)';
+      row.style.transform='';
+    });
+  });
+}
 function addPlayer(idx){
   if(state.names.length>=20) return;
+  const oldTops=captureRowTops('nameList');
+  const insertedAt = idx===undefined ? state.names.length : idx+1;
   const name="שחקן "+(state.names.length+1);
   if(idx===undefined) state.names.push(name);
   else state.names.splice(idx+1,0,name);
   state.players=state.names.length; setPlayers(state.players);
   buildNames();
+  flipRows('nameList','.nameRow', oldTops, insertedAt, null);
 }
 function removePlayer(idx){
-  if(state.names.length<=3){ alert("צריך לפחות 3 שחקנים"); return; }
+  if(state.names.length<=3){ showSnackbar("צריך לפחות 3 שחקנים"); return; }
+  const oldTops=captureRowTops('nameList');
+  const removedAt = idx===undefined ? state.names.length-1 : idx;
   if(idx===undefined) state.names.pop();
   else state.names.splice(idx,1);
   state.players=state.names.length; setPlayers(state.players);
   buildNames();
+  flipRows('nameList','.nameRow', oldTops, null, removedAt);
 }
 function attachSwipe(row,i){
   let startX=0,dx=0,active=false;
@@ -476,7 +727,7 @@ function attachSwipe(row,i){
   const start=x=>{startX=x;active=true;dx=0;};
   const move=x=>{ if(!active)return; dx=x-startX; inp.style.transform='translateX('+dx+'px)'; inp.style.opacity=1-Math.min(Math.abs(dx)/300,.6);};
   const end=()=>{ if(!active)return; active=false;
-    inp.style.transition='transform .2s,opacity .2s';
+    inp.style.transition='transform var(--dur-short),opacity var(--dur-short)';
     if(dx<-90){ inp.style.transform='translateX(-120%)'; setTimeout(()=>removePlayer(i),150); }
     else if(dx>90){ inp.style.transform='translateX(120%)'; setTimeout(()=>addPlayer(i),150); }
     else { inp.style.transform=''; inp.style.opacity=1; }
@@ -490,6 +741,46 @@ function attachSwipe(row,i){
   inp.addEventListener('mousedown',e=>{mDown=true;start(e.clientX);});
   window.addEventListener('mousemove',e=>{ if(mDown){ if(Math.abs(e.clientX-startX)>6) move(e.clientX);} });
   window.addEventListener('mouseup',()=>{ if(mDown){mDown=false; if(Math.abs(dx)>6) end(); else active=false;} });
+}
+
+/* ================= GAME HISTORY (Profile tab) ================= */
+function saveGameHistory(){
+  try{
+    let saved=JSON.parse(localStorage.getItem('impostor_history')||'[]');
+    const key=JSON.stringify(state.names);
+    saved=saved.filter(g=>JSON.stringify(g.names)!==key);
+    saved.unshift({names:[...state.names], date:new Date().toISOString()});
+    saved=saved.slice(0,15);
+    localStorage.setItem('impostor_history', JSON.stringify(saved));
+  }catch(e){}
+}
+function buildProfile(){
+  const box=document.getElementById('historyList'); box.innerHTML='';
+  let saved=[];
+  try{ saved=JSON.parse(localStorage.getItem('impostor_history')||'[]'); }catch(e){}
+  if(saved.length===0){
+    box.innerHTML='<div class="emptyState">עדיין לא שיחקתם — התחילו משחק כדי לשמור אותו כאן</div>';
+    return;
+  }
+  saved.forEach(g=>{
+    const el=document.createElement('div'); el.className='historyItem';
+    const d=new Date(g.date);
+    const dateStr=isNaN(d) ? '' : d.toLocaleDateString('he-IL',{day:'numeric',month:'short'});
+    el.innerHTML='<div class="historyTop"><span class="historyCount">'+g.names.length+' שחקנים</span><span class="historyDate">'+dateStr+'</span></div><div class="historyNames">'+g.names.join(' · ')+'</div>';
+    el.onclick=()=>loadHistoryGame(g);
+    box.appendChild(el);
+  });
+}
+function loadHistoryGame(g){
+  state.names=[...g.names];
+  state.players=state.names.length;
+  setPlayers(state.players);
+  buildNames();
+  show('names');
+}
+function beginGame(){
+  saveGameHistory();
+  startDeal();
 }
 
 /* ================= DEAL ================= */
@@ -558,9 +849,9 @@ function nextCard(){
   if(state.cardIndex>=state.assignments.length-1){ show('game'); return; }
   // push transition
   const wrap=document.getElementById('cardWrap');
-  if(curCard){ curCard.style.transition='transform .35s ease, opacity .35s'; curCard.classList.remove('flipped'); curCard.style.transform='translateX(-120%) rotate(-6deg)'; curCard.style.opacity='0'; }
+  if(curCard){ curCard.style.transition='transform var(--dur-medium) var(--ease-standard), opacity var(--dur-medium)'; curCard.classList.remove('flipped'); curCard.style.transform='translateX(-120%) rotate(-6deg)'; curCard.style.opacity='0'; }
   state.cardIndex++;
-  setTimeout(()=>{ renderCard(); const c=curCard; c.style.transform='translateX(120%)'; c.style.opacity='0'; requestAnimationFrame(()=>{ c.style.transition='transform .4s cubic-bezier(.2,.7,.2,1),opacity .4s'; c.style.transform=''; c.style.opacity='1'; }); },330);
+  setTimeout(()=>{ renderCard(); const c=curCard; c.style.transform='translateX(120%)'; c.style.opacity='0'; requestAnimationFrame(()=>{ c.style.transition='transform var(--dur-medium) cubic-bezier(.2,.7,.2,1),opacity var(--dur-medium)'; c.style.transform=''; c.style.opacity='1'; }); },330);
 }
 
 /* ================= JUMP TO A CARD (from sheet) ================= */
@@ -587,14 +878,13 @@ function closeSheet(){
   const s=document.getElementById('sheet'); s.classList.remove('open');
   s.style.transform=''; document.getElementById('sheetBackdrop').style.display='none';
 }
-// draggable sheet
-(function(){
-  const s=document.getElementById('sheet'); let sy=0,dy=0,drag=false;
-  const grab=s.querySelector('.grabber'); const head=s.querySelector('h3');
-  const startEls=[grab,head];
-  function start(y){drag=true;sy=y;dy=0;s.style.transition='none';}
-  function move(y){ if(!drag)return; dy=Math.max(0,y-sy); s.style.transform='translateY('+dy+'px)'; }
-  function end(){ if(!drag)return; drag=false; s.style.transition='transform .3s ease'; if(dy>120) closeSheet(); else s.style.transform='translateY(0)'; }
+// generic draggable modal sheet (drag the grabber/title down to dismiss)
+function makeDraggableSheet(sheetEl, onClose){
+  let sy=0,dy=0,drag=false;
+  const startEls=[sheetEl.querySelector('.grabber'), sheetEl.querySelector('h3')];
+  function start(y){drag=true;sy=y;dy=0;sheetEl.style.transition='none';}
+  function move(y){ if(!drag)return; dy=Math.max(0,y-sy); sheetEl.style.transform='translateY('+dy+'px)'; }
+  function end(){ if(!drag)return; drag=false; sheetEl.style.transition='transform var(--dur-medium) var(--ease-standard)'; if(dy>120) onClose(); else sheetEl.style.transform='translateY(0)'; }
   startEls.forEach(el=>{
     el.addEventListener('touchstart',e=>start(e.touches[0].clientY),{passive:true});
     el.addEventListener('mousedown',e=>start(e.clientY));
@@ -602,11 +892,36 @@ function closeSheet(){
   window.addEventListener('touchmove',e=>{if(drag)move(e.touches[0].clientY);},{passive:true});
   window.addEventListener('mousemove',e=>{if(drag)move(e.clientY);});
   window.addEventListener('touchend',end); window.addEventListener('mouseup',end);
-})();
+}
+makeDraggableSheet(document.getElementById('sheet'), closeSheet);
+
+/* ================= FEEDBACK ================= */
+function openFeedback(){
+  document.getElementById('feedbackText').value='';
+  document.getElementById('feedbackBackdrop').style.display='block';
+  const s=document.getElementById('feedbackSheet'); requestAnimationFrame(()=>s.classList.add('open'));
+}
+function closeFeedback(){
+  const s=document.getElementById('feedbackSheet'); s.classList.remove('open');
+  s.style.transform=''; document.getElementById('feedbackBackdrop').style.display='none';
+}
+makeDraggableSheet(document.getElementById('feedbackSheet'), closeFeedback);
+function sendFeedback(){
+  const text=document.getElementById('feedbackText').value.trim();
+  if(!text) return;
+  // TODO: wire to Firebase once configured — for now queue locally so nothing is lost
+  try{
+    const pending=JSON.parse(localStorage.getItem('impostor_pending_feedback')||'[]');
+    pending.push({text, date:new Date().toISOString()});
+    localStorage.setItem('impostor_pending_feedback', JSON.stringify(pending));
+  }catch(e){}
+  closeFeedback();
+  showSnackbar('תודה! המשוב נשמר ויישלח בקרוב 🙏');
+}
 
 /* ================= GAME ACTIONS ================= */
 function restartSame(){ buildNames(); show('names'); }
-function goHome(){ closeSheet(); show('home'); }
+function goHome(){ closeSheet(); closeFeedback(); show('home'); }
 function revealImpostor(){
   document.getElementById('revImp').textContent=state.impNames.join(", ");
   document.getElementById('revWord').textContent=state.word;
@@ -614,6 +929,7 @@ function revealImpostor(){
 }
 function newRound(){ startDeal(); }
 document.getElementById('nextBtn').onclick=nextCard;
+positionNavIndicator();
 </script>
 </body>
 </html>
