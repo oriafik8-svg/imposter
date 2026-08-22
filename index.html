@@ -513,6 +513,33 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
   </button>
 </nav>
 
+<!-- Firebase (online/Global mode only) — a module script so it doesn't touch the
+     classic global-scope script below. Exposes window.fb.{app,db,auth} and
+     window.fbReady (resolves once anonymous auth completes) for the classic
+     script to use once room/Cloud-Functions logic is wired up. -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAZ29ZL5xVfHayT_4EP9kKKym81KqlvqgA",
+    authDomain: "imposter-ebc53.firebaseapp.com",
+    projectId: "imposter-ebc53",
+    storageBucket: "imposter-ebc53.firebasestorage.app",
+    messagingSenderId: "616518109350",
+    appId: "1:616518109350:web:0838aa9dbcd2cd7c71cc67"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  window.fb = { app, db, auth };
+  window.fbReady = signInAnonymously(auth)
+    .then(cred => { console.log('Firebase anonymous sign-in ok:', cred.user.uid); })
+    .catch(err => { console.error('Firebase anonymous sign-in failed — enable Anonymous auth in the Firebase console (Authentication → Sign-in method).', err); });
+</script>
+
 <script>
 /* ================= WORD DATA ================= */
 const WORDS = {
