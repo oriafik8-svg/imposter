@@ -1,0 +1,85 @@
+rules_version = '2';
+
+// ============================================================================
+// Data model (documented here since Firestore has no schema file):
+//
+// rooms/{roomId}                          roomId IS the room code (e.g. "K7X4P")
+//   hostUid, hostName, status: "waiting"|"playing"|"ended",
+//   impostorCount, totalRounds, currentRound, categories: string[],
+//   createdAt, updatedAt
+//   -- no secrets live here --
+//
+// rooms/{roomId}/players/{uid}
+//   name, connected, isHost, score, joinedAt
+//   -- no secrets --
+//
+// rooms/{roomId}/rounds/{n}                PUBLIC round state only
+//   status: "info"|"associations"|"voting"|"revealed"|"guessing"|"done"
+//   submittedCount, votedCount, associationsRevealed, votesRevealed,
+//   revealedWord, revealedImpostorUids, revealedImpostorNames   (null until the
+//     reveal step — the Cloud Function copies them here FROM the secret doc
+//     once voting closes, so they simply don't exist anywhere client-readable
+//     before that moment)
+//   guess, guessCorrect
+//
+// rooms/{roomId}/rounds/{n}/secret/data     THE actual word/impostor/clue.
+//   Never readable by any client, ever. Only Cloud Functions (Admin SDK,
+//   which bypasses these rules entirely) read or write it.
+//
+// rooms/{roomId}/rounds/{n}/private/{uid}   what THIS player's device shows.
+//   isImpostor, word (if not impostor), clue (if impostor)
+//   Readable only by that uid — never by any other player.
+//
+// rooms/{roomId}/rounds/{n}/associations/{uid}   name, text, submittedAt
+//   Readable once the round's associationsRevealed step is done.
+//
+// rooms/{roomId}/rounds/{n}/votes/{uid}          votedForUid, votedAt
+//   Readable only after votesRevealed.
+//
+// Every write in this whole tree goes through a Cloud Function (Admin SDK).
+// Clients never write directly to Firestore — that's what keeps "the server
+// is the source of truth" actually true instead of just a suggestion.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    match /rooms/{roomId} {
+      allow read: if signedIn();
+      allow write: if false; // only Admin SDK (Cloud Functions) writes rooms
+
+      match /players/{uid} {
+        allow read: if signedIn();
+        allow write: if false;
+      }
+
+      match /rounds/{roundId} {
+        allow read: if signedIn(); // public fields only — see schema note above
+        allow write: if false;
+
+        match /secret/{doc} {
+          allow read, write: if false; // never, by anyone, ever
+        }
+
+        match /private/{uid} {
+          allow read: if signedIn() && request.auth.uid == uid;
+          allow write: if false;
+        }
+
+        match /associations/{uid} {
+          allow read: if signedIn() &&
+            get(/databases/$(database)/documents/rooms/$(roomId)/rounds/$(roundId)).data.associationsRevealed == true;
+          allow write: if false;
+        }
+
+        match /votes/{uid} {
+          allow read: if signedIn() &&
+            get(/databases/$(database)/documents/rooms/$(roomId)/rounds/$(roundId)).data.votesRevealed == true;
+          allow write: if false;
+        }
+      }
+    }
+  }
+}
