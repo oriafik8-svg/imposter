@@ -195,7 +195,7 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 .back .imp{color:var(--md-error); font-size:24px; font-weight:600; line-height:1.4}
 .back .clue{font-size:34px; font-weight:700; margin-top:6px}
 .back .role{font-size:14px; color:var(--md-on-surface-variant); margin-bottom:10px; letter-spacing:.5px}
-#cardCounter{text-align:center; color:var(--md-on-surface-variant); margin-top:10px; font-size:13px}
+#cardCounter{text-align:center; color:var(--md-on-surface-variant); margin-top:10px; font-size:13px; direction:ltr; unicode-bidi:isolate}
 
 /* ===== reveal / starter — tonal cards ===== */
 .revealBox{background:var(--md-error-container); border-radius:var(--shape-xl); padding:30px 22px; text-align:center; margin:24px 0}
@@ -653,6 +653,10 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 
 /* ================= SNACKBAR ================= */
 let snackbarTimer=null;
+function dismissSnackbar(){
+  clearTimeout(snackbarTimer);
+  document.getElementById('snackbarWrap').innerHTML='';
+}
 function showSnackbar(msg){
   const wrap=document.getElementById('snackbarWrap');
   clearTimeout(snackbarTimer);
@@ -1076,6 +1080,7 @@ function jumpToCard(idx){
 
 /* ================= SHEET ================= */
 function openSheet(){
+  dismissSnackbar();
   const box=document.getElementById('sheetNames'); box.innerHTML='';
   state.assignments.forEach((a,i)=>{
     const el=document.createElement('div'); el.className='sheetName'; el.textContent=a.name;
@@ -1108,6 +1113,7 @@ makeDraggableSheet(document.getElementById('sheet'), closeSheet);
 
 /* ================= FEEDBACK ================= */
 function openFeedback(){
+  dismissSnackbar();
   document.getElementById('feedbackText').value='';
   document.getElementById('feedbackBackdrop').style.display='block';
   const s=document.getElementById('feedbackSheet'); requestAnimationFrame(()=>s.classList.add('open'));
@@ -1141,7 +1147,7 @@ function revealImpostor(){
 function newRound(){ startDeal(); }
 document.getElementById('nextBtn').onclick=nextCard;
 positionNavIndicator();
-restoreSession();
+if(!restoreSession()) show('home');
 </script>
 </body>
 </html>
