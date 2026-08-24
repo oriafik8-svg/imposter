@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,add_circle,globe,home_app_logo,login,thumbs_up_down" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=account_circle,add_circle,code,globe,home_app_logo,login,thumb_down,thumb_up,thumbs_up_down" rel="stylesheet">
 <style>
 /* ===== Material Design 3 — baseline "Purple" dynamic color scheme ===== */
 :root{
@@ -239,6 +239,7 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 }
 .navIconWrap{width:56px; height:32px; border-radius:var(--shape-full); display:flex; align-items:center; justify-content:center}
 .navItem.active{color:var(--md-on-surface)}
+.navItem.hidden{display:none}
 .navItem.active .material-symbols-outlined{font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24}
 .navLabel{font-size:12px; font-weight:500; line-height:16px}
 #navIndicator{
@@ -288,6 +289,19 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 .historyNames{font-size:13px; color:var(--md-on-surface-variant); line-height:18px}
 .emptyState{text-align:center; color:var(--md-on-surface-variant); padding:60px 20px; font-size:14px; line-height:20px}
 
+/* ===== developer stats ===== */
+.devStatsSummary{display:flex; gap:10px; margin:14px 0}
+.devStatChip{flex:1; background:var(--md-surface-container-high); border-radius:var(--shape-lg); padding:12px; text-align:center}
+.devStatChip .n{font-size:22px; font-weight:700; color:var(--md-on-surface)}
+.devStatChip .l{font-size:12px; color:var(--md-on-surface-variant)}
+.devWordItem{background:var(--md-surface-container-high); border-radius:var(--shape-lg); padding:14px 16px; margin:10px 0}
+.devWordTop{display:flex; justify-content:space-between; align-items:center}
+.devWordName{font-weight:700; font-size:16px; color:var(--md-on-surface)}
+.devWordClue{font-size:13px; color:var(--md-on-surface-variant); margin-top:2px}
+.devWordVotes{display:flex; gap:12px; font-size:13px; white-space:nowrap}
+.devWordVotes .up{color:var(--md-tertiary)}
+.devWordVotes .down{color:var(--md-error)}
+
 /* ===== snackbar ===== */
 #snackbarWrap{position:fixed; left:0; right:0; bottom:88px; z-index:80; max-width:640px; margin:0 auto; padding:0 16px; display:flex; flex-direction:column; align-items:center; pointer-events:none}
 .snackbar{
@@ -308,12 +322,17 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 }
 #feedbackBtn:hover{background:var(--md-surface-container-highest)}
 #feedbackBtn.hidden{display:none}
-#feedbackText{
-  width:100%; min-height:110px; padding:14px 16px; font-size:15px; font-family:inherit;
-  border:1px solid var(--md-outline); border-radius:var(--shape-md); background:var(--md-surface);
-  color:var(--md-on-surface); resize:vertical;
+.feedbackWord{text-align:center; font-size:22px; font-weight:700; color:var(--md-primary); margin:4px 0 18px}
+.feedbackRateRow{display:flex; gap:12px}
+.rateBtn{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 8px;
+  border-radius:var(--shape-lg); border:1px solid var(--md-outline); background:var(--md-surface);
+  color:var(--md-on-surface); font-size:14px; font-weight:600; transition:background var(--dur-micro), transform var(--dur-micro);
 }
-#feedbackText:focus{outline:none; border:2px solid var(--md-primary)}
+.rateBtn:active{transform:scale(.96)}
+.rateBtn .material-symbols-outlined{font-size:32px}
+.rateUp:hover{background:var(--md-tertiary-container); border-color:var(--md-tertiary-container)}
+.rateDown:hover{background:var(--md-error-container); border-color:var(--md-error-container)}
 
 /* ===== reduced motion — the whole motion system is token-driven, so collapsing
    the duration scale to ~0 shortens/disables essentially every transition and
@@ -333,7 +352,7 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 
 <!-- HOME -->
 <section id="home" class="screen active">
-  <h1>המתחזה</h1>
+  <h1 id="appTitle">המתחזה</h1>
   <p class="sub">מי מכם מזייף? גלו את המתחזה!</p>
 
   <div class="field">
@@ -475,6 +494,15 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
   <div id="historyList"></div>
 </section>
 
+<!-- DEVELOPER STATS (hidden nav item, dev mode only) -->
+<section id="devStats" class="screen">
+  <h1 class="title-sm">סטטיסטיקות מפתח</h1>
+  <p class="sub">מילים שסומנו "לא אהבתי" ✕ — מיין לפי הכי הרבה. הנתונים מהמכשיר הזה בלבד (בלי שרת מחובר עדיין).</p>
+  <div id="devStatsSummary" class="devStatsSummary"></div>
+  <div id="devStatsList"></div>
+  <button class="btn ghost" style="margin-top:18px" onclick="resetWordFeedback()">אפס סטטיסטיקות</button>
+</section>
+
 <!-- SHEET -->
 <div id="sheetBackdrop" class="modalBackdrop" onclick="closeSheet()"></div>
 <div id="sheet" class="modalSheet">
@@ -487,10 +515,18 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 <div id="feedbackBackdrop" class="modalBackdrop" onclick="closeFeedback()"></div>
 <div id="feedbackSheet" class="modalSheet">
   <div class="grabber"></div>
-  <h3>יש לכם רעיון, באג, או פשוט משהו להגיד?</h3>
-  <textarea id="feedbackText" placeholder="כתבו כאן..."></textarea>
-  <button class="btn" style="margin-top:14px" onclick="sendFeedback()">שליחה</button>
-  <button class="btn ghost" onclick="closeFeedback()">ביטול</button>
+  <h3>מה דעתכם על המילה?</h3>
+  <div id="feedbackWord" class="feedbackWord"></div>
+  <div class="feedbackRateRow">
+    <button class="rateBtn rateUp" onclick="rateCurrentWord(true)">
+      <span class="material-symbols-outlined">thumb_up</span>
+      <span>אהבתי</span>
+    </button>
+    <button class="rateBtn rateDown" onclick="rateCurrentWord(false)">
+      <span class="material-symbols-outlined">thumb_down</span>
+      <span>לא אהבתי</span>
+    </button>
+  </div>
 </div>
 
 <!-- SNACKBAR -->
@@ -510,6 +546,10 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
   <button class="navItem" data-screen="profile" onclick="show('profile')">
     <span class="navIconWrap"><span class="material-symbols-outlined">account_circle</span></span>
     <span class="navLabel">פרופיל</span>
+  </button>
+  <button class="navItem hidden" id="devNavItem" data-screen="devStats" onclick="show('devStats')">
+    <span class="navIconWrap"><span class="material-symbols-outlined">code</span></span>
+    <span class="navLabel">מפתח</span>
   </button>
 </nav>
 
@@ -577,8 +617,8 @@ let state = {
 const MAX_STARTER_STREAK = 2; // same player can't start more than this many rounds in a row
 
 /* ================= HELPERS ================= */
-const TOP_LEVEL_SCREENS = ['home','global','profile'];
-const RESTORABLE_SCREENS = ['home','names','cards','game','reveal','custom','profile','global','onlineCreate','onlineJoin'];
+const TOP_LEVEL_SCREENS = ['home','global','profile','devStats'];
+const RESTORABLE_SCREENS = ['home','names','cards','game','reveal','custom','profile','global','onlineCreate','onlineJoin','devStats'];
 function saveSession(){
   try{
     const scr=document.querySelector('.screen.active');
@@ -592,6 +632,7 @@ function restoreSession(){
     if(!raw) return false;
     const saved=JSON.parse(raw);
     if(!saved || !RESTORABLE_SCREENS.includes(saved.screen) || !saved.state) return false;
+    if(saved.screen==='devStats' && !isDevMode()) return false;
     const needsRound = saved.screen==='cards' || saved.screen==='game' || saved.screen==='reveal';
     if(needsRound && (!saved.state.assignments || !saved.state.assignments.length)) return false;
 
@@ -635,6 +676,7 @@ function show(id){
   }
   document.getElementById('feedbackBtn').classList.toggle('hidden', id!=='game');
   if(id==='profile') buildProfile();
+  if(id==='devStats') buildDevStats();
   saveSession();
 }
 function positionNavIndicator(){
@@ -1111,10 +1153,10 @@ function makeDraggableSheet(sheetEl, onClose){
 }
 makeDraggableSheet(document.getElementById('sheet'), closeSheet);
 
-/* ================= FEEDBACK ================= */
+/* ================= FEEDBACK (rate the current word — thumbs up/down only) ================= */
 function openFeedback(){
   dismissSnackbar();
-  document.getElementById('feedbackText').value='';
+  document.getElementById('feedbackWord').textContent = state.word || '';
   document.getElementById('feedbackBackdrop').style.display='block';
   const s=document.getElementById('feedbackSheet'); requestAnimationFrame(()=>s.classList.add('open'));
 }
@@ -1123,17 +1165,74 @@ function closeFeedback(){
   s.style.transform=''; document.getElementById('feedbackBackdrop').style.display='none';
 }
 makeDraggableSheet(document.getElementById('feedbackSheet'), closeFeedback);
-function sendFeedback(){
-  const text=document.getElementById('feedbackText').value.trim();
-  if(!text) return;
-  // TODO: wire to Firebase once configured — for now queue locally so nothing is lost
+const WORD_FEEDBACK_KEY='impostor_word_feedback';
+function rateCurrentWord(liked){
+  if(!state.word) return;
+  // TODO: also send to Firebase once configured, so stats aggregate across real users, not just this device
   try{
-    const pending=JSON.parse(localStorage.getItem('impostor_pending_feedback')||'[]');
-    pending.push({text, date:new Date().toISOString()});
-    localStorage.setItem('impostor_pending_feedback', JSON.stringify(pending));
+    const stats=JSON.parse(localStorage.getItem(WORD_FEEDBACK_KEY)||'{}');
+    const entry=stats[state.word] || {clue:'', likes:0, dislikes:0};
+    entry.clue = (state.assignments && state.assignments[0] && state.assignments[0].clue) || entry.clue;
+    if(liked) entry.likes++; else entry.dislikes++;
+    stats[state.word]=entry;
+    localStorage.setItem(WORD_FEEDBACK_KEY, JSON.stringify(stats));
   }catch(e){}
   closeFeedback();
-  showSnackbar('תודה! המשוב נשמר ויישלח בקרוב 🙏');
+  showSnackbar(liked ? 'תודה! 👍' : 'תודה! 👎');
+}
+
+/* ================= DEVELOPER MODE ================= */
+const DEV_MODE_KEY='impostor_dev_mode';
+function isDevMode(){ try{ return localStorage.getItem(DEV_MODE_KEY)==='1'; }catch(e){ return false; } }
+function applyDevNavVisibility(){
+  document.getElementById('devNavItem').classList.toggle('hidden', !isDevMode());
+}
+let titleTapCount=0, titleTapTimer=null;
+document.getElementById('appTitle').addEventListener('click', ()=>{
+  titleTapCount++;
+  clearTimeout(titleTapTimer);
+  titleTapTimer=setTimeout(()=>{ titleTapCount=0; }, 2500);
+  if(titleTapCount>=5){
+    titleTapCount=0; clearTimeout(titleTapTimer);
+    const on=!isDevMode();
+    try{ localStorage.setItem(DEV_MODE_KEY, on?'1':'0'); }catch(e){}
+    applyDevNavVisibility();
+    requestAnimationFrame(positionNavIndicator);
+    showSnackbar(on ? 'מצב מפתח הופעל 🛠' : 'מצב מפתח כובה');
+  }
+});
+function buildDevStats(){
+  let stats={};
+  try{ stats=JSON.parse(localStorage.getItem(WORD_FEEDBACK_KEY)||'{}'); }catch(e){}
+  const words=Object.keys(stats);
+  let totalLikes=0, totalDislikes=0;
+  words.forEach(w=>{ totalLikes+=stats[w].likes||0; totalDislikes+=stats[w].dislikes||0; });
+  document.getElementById('devStatsSummary').innerHTML =
+    '<div class="devStatChip"><div class="n">'+words.length+'</div><div class="l">מילים דורגו</div></div>'
+    +'<div class="devStatChip"><div class="n">'+totalLikes+'</div><div class="l">לייקים 👍</div></div>'
+    +'<div class="devStatChip"><div class="n">'+totalDislikes+'</div><div class="l">דיסלייקים 👎</div></div>';
+
+  const disliked=words.filter(w=>(stats[w].dislikes||0)>0).sort((a,b)=>stats[b].dislikes-stats[a].dislikes);
+  const box=document.getElementById('devStatsList'); box.innerHTML='';
+  if(disliked.length===0){
+    box.innerHTML='<div class="emptyState">אין עדיין מילים שסומנו לא אהבתי ✕</div>';
+    return;
+  }
+  disliked.forEach(w=>{
+    const e=stats[w];
+    const el=document.createElement('div'); el.className='devWordItem';
+    el.innerHTML =
+      '<div class="devWordTop">'
+        +'<div><div class="devWordName">'+w+'</div><div class="devWordClue">רמז: '+(e.clue||'—')+'</div></div>'
+        +'<div class="devWordVotes"><span class="up">👍 '+(e.likes||0)+'</span><span class="down">👎 '+(e.dislikes||0)+'</span></div>'
+      +'</div>';
+    box.appendChild(el);
+  });
+}
+function resetWordFeedback(){
+  try{ localStorage.removeItem(WORD_FEEDBACK_KEY); }catch(e){}
+  buildDevStats();
+  showSnackbar('הסטטיסטיקות אופסו');
 }
 
 /* ================= GAME ACTIONS ================= */
@@ -1146,6 +1245,7 @@ function revealImpostor(){
 }
 function newRound(){ startDeal(); }
 document.getElementById('nextBtn').onclick=nextCard;
+applyDevNavVisibility();
 positionNavIndicator();
 if(!restoreSession()) show('home');
 </script>
