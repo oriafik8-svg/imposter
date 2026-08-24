@@ -39,12 +39,37 @@ rules_version = '2';
 // Every write in this whole tree goes through a Cloud Function (Admin SDK).
 // Clients never write directly to Firestore — that's what keeps "the server
 // is the source of truth" actually true instead of just a suggestion.
+//
+// wordFeedback/{voteId}    ONE document per 👍/👎 vote on a word (local mode).
+//   word, clue (strings), liked (bool), createdAt (server timestamp)
+//   Any signed-in client (anonymous players included) may CREATE a vote —
+//   never read, update, or delete it, and never overwrite someone else's.
+//   Only the developer's own Google-authenticated account may READ the
+//   collection, gated on the verified email Google's own sign-in flow puts
+//   on the auth token — the app itself never sees or checks a password.
 // ============================================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function signedIn() { return request.auth != null; }
+    function isDeveloper() {
+      return signedIn()
+        && request.auth.token.email == 'oriafik8@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    match /wordFeedback/{voteId} {
+      allow read: if isDeveloper();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['word','clue','liked','createdAt'])
+        && request.resource.data.word is string
+        && request.resource.data.word.size() > 0 && request.resource.data.word.size() <= 100
+        && request.resource.data.clue is string && request.resource.data.clue.size() <= 100
+        && request.resource.data.liked is bool
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
 
     match /rooms/{roomId} {
       allow read: if signedIn();

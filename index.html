@@ -367,10 +367,17 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
     <div class="hint">מינימום 1, מקסימום = שחקנים פחות 2</div>
   </div>
 
-  <h2 style="margin:22px 0 4px">קטגוריות</h2>
+  <button class="btn" style="margin-top:22px" onclick="show('categories')">המשך</button>
+</section>
+
+<!-- CATEGORIES -->
+<section id="categories" class="screen">
+  <h1 class="title-sm">קטגוריות</h1>
+  <p class="sub">בחרו קטגוריה אחת או יותר</p>
   <div id="cats" class="cats"></div>
 
   <button class="btn" id="createBtn" style="margin-top:22px" onclick="createGame()">צור משחק</button>
+  <button class="btn ghost" onclick="show('home')">חזרה</button>
 </section>
 
 <!-- NAMES -->
@@ -383,7 +390,7 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
     <button onclick="addPlayer()">+</button>
   </div>
   <button class="btn" onclick="beginGame()">חלק כרטיסיות</button>
-  <button class="btn ghost" onclick="show('home')">חזרה</button>
+  <button class="btn ghost" onclick="show('categories')">חזרה</button>
 </section>
 
 <!-- CUSTOM -->
@@ -497,10 +504,9 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
 <!-- DEVELOPER STATS (hidden nav item, dev mode only) -->
 <section id="devStats" class="screen">
   <h1 class="title-sm">סטטיסטיקות מפתח</h1>
-  <p class="sub">מילים שסומנו "לא אהבתי" ✕ — מיין לפי הכי הרבה. הנתונים מהמכשיר הזה בלבד (בלי שרת מחובר עדיין).</p>
+  <p class="sub">מילים שסומנו "לא אהבתי" ✕ — ממוין מהכי הרבה. נתונים חיים מכל השחקנים, ישירות מהשרת.</p>
   <div id="devStatsSummary" class="devStatsSummary"></div>
   <div id="devStatsList"></div>
-  <button class="btn ghost" style="margin-top:18px" onclick="resetWordFeedback()">אפס סטטיסטיקות</button>
 </section>
 
 <!-- SHEET -->
@@ -553,14 +559,19 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
   </button>
 </nav>
 
-<!-- Firebase (online/Global mode only) — a module script so it doesn't touch the
-     classic global-scope script below. Exposes window.fb.{app,db,auth} and
-     window.fbReady (resolves once anonymous auth completes) for the classic
-     script to use once room/Cloud-Functions logic is wired up. -->
+<!-- Firebase — a module script so it doesn't touch the classic global-scope
+     script below. Exposes window.fb.{app,db,auth}, window.fbReady (resolves
+     once anonymous auth completes), and a few bridge functions the classic
+     script calls: fbRateWord (write a 👍/👎 vote), fbGoogleSignIn /
+     fbSignOutDev (the developer gate), fbFetchWordStats (read all votes —
+     only succeeds for the developer's own Google-authenticated account,
+     per firestore.rules). -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
-  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+  import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
+  const DEV_EMAIL = "oriafik8@gmail.com";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAZ29ZL5xVfHayT_4EP9kKKym81KqlvqgA",
@@ -578,6 +589,34 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
   window.fbReady = signInAnonymously(auth)
     .then(cred => { console.log('Firebase anonymous sign-in ok:', cred.user.uid); })
     .catch(err => { console.error('Firebase anonymous sign-in failed — enable Anonymous auth in the Firebase console (Authentication → Sign-in method).', err); });
+
+  window.fbRateWord = async (word, clue, liked) => {
+    await window.fbReady;
+    await addDoc(collection(db, 'wordFeedback'), { word, clue: clue || '', liked: !!liked, createdAt: serverTimestamp() });
+  };
+
+  window.fbGoogleSignIn = async () => {
+    try{
+      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      const email = (result.user.email || '').toLowerCase();
+      if(email === DEV_EMAIL){ return { ok:true }; }
+      await signOut(auth);
+      await signInAnonymously(auth); // restore normal write access for local-mode voting
+      return { ok:false, reason:'wrong-account' };
+    }catch(err){
+      // restore anonymous session so local-mode voting keeps working even if sign-in was cancelled/failed
+      try{ if(!auth.currentUser) await signInAnonymously(auth); }catch(e2){}
+      return { ok:false, reason:'error', message: err && err.message };
+    }
+  };
+  window.fbSignOutDev = async () => {
+    try{ await signOut(auth); await signInAnonymously(auth); }catch(e){}
+  };
+
+  window.fbFetchWordStats = async () => {
+    const snap = await getDocs(collection(db, 'wordFeedback'));
+    return snap.docs.map(d => d.data());
+  };
 </script>
 
 <script>
@@ -618,7 +657,7 @@ const MAX_STARTER_STREAK = 2; // same player can't start more than this many rou
 
 /* ================= HELPERS ================= */
 const TOP_LEVEL_SCREENS = ['home','global','profile','devStats'];
-const RESTORABLE_SCREENS = ['home','names','cards','game','reveal','custom','profile','global','onlineCreate','onlineJoin','devStats'];
+const RESTORABLE_SCREENS = ['home','categories','names','cards','game','reveal','custom','profile','global','onlineCreate','onlineJoin','devStats'];
 function saveSession(){
   try{
     const scr=document.querySelector('.screen.active');
@@ -829,7 +868,7 @@ function saveCustom(){
     .filter(([w])=>w);
   if(customWords.length>0) selCats.add(CUSTOM_KEY); else selCats.delete(CUSTOM_KEY);
   try{ localStorage.setItem('impostor_custom', JSON.stringify(customWords)); }catch(e){}
-  buildCats(); show('home');
+  buildCats(); show('categories');
   showSnackbar('נשמר ✓');
 }
 buildCats();
@@ -1165,55 +1204,73 @@ function closeFeedback(){
   s.style.transform=''; document.getElementById('feedbackBackdrop').style.display='none';
 }
 makeDraggableSheet(document.getElementById('feedbackSheet'), closeFeedback);
-const WORD_FEEDBACK_KEY='impostor_word_feedback';
 function rateCurrentWord(liked){
   if(!state.word) return;
-  // TODO: also send to Firebase once configured, so stats aggregate across real users, not just this device
-  try{
-    const stats=JSON.parse(localStorage.getItem(WORD_FEEDBACK_KEY)||'{}');
-    const entry=stats[state.word] || {clue:'', likes:0, dislikes:0};
-    entry.clue = (state.assignments && state.assignments[0] && state.assignments[0].clue) || entry.clue;
-    if(liked) entry.likes++; else entry.dislikes++;
-    stats[state.word]=entry;
-    localStorage.setItem(WORD_FEEDBACK_KEY, JSON.stringify(stats));
-  }catch(e){}
+  const clue=(state.assignments && state.assignments[0] && state.assignments[0].clue) || '';
+  if(window.fbRateWord) window.fbRateWord(state.word, clue, liked).catch(err=>console.error('vote failed to save', err));
   closeFeedback();
   showSnackbar(liked ? 'תודה! 👍' : 'תודה! 👎');
 }
 
-/* ================= DEVELOPER MODE ================= */
+/* ================= DEVELOPER MODE (gated by Google sign-in, not a local toggle) ================= */
 const DEV_MODE_KEY='impostor_dev_mode';
 function isDevMode(){ try{ return localStorage.getItem(DEV_MODE_KEY)==='1'; }catch(e){ return false; } }
 function applyDevNavVisibility(){
   document.getElementById('devNavItem').classList.toggle('hidden', !isDevMode());
 }
 let titleTapCount=0, titleTapTimer=null;
-document.getElementById('appTitle').addEventListener('click', ()=>{
+document.getElementById('appTitle').addEventListener('click', async ()=>{
   titleTapCount++;
   clearTimeout(titleTapTimer);
   titleTapTimer=setTimeout(()=>{ titleTapCount=0; }, 2500);
-  if(titleTapCount>=5){
-    titleTapCount=0; clearTimeout(titleTapTimer);
-    const on=!isDevMode();
-    try{ localStorage.setItem(DEV_MODE_KEY, on?'1':'0'); }catch(e){}
-    applyDevNavVisibility();
-    requestAnimationFrame(positionNavIndicator);
-    showSnackbar(on ? 'מצב מפתח הופעל 🛠' : 'מצב מפתח כובה');
+  if(titleTapCount<8) return;
+  titleTapCount=0; clearTimeout(titleTapTimer);
+
+  if(isDevMode()){
+    try{ localStorage.setItem(DEV_MODE_KEY,'0'); }catch(e){}
+    applyDevNavVisibility(); requestAnimationFrame(positionNavIndicator);
+    if(window.fbSignOutDev) await window.fbSignOutDev();
+    showSnackbar('מצב מפתח כובה');
+    return;
+  }
+  if(!window.fbGoogleSignIn){ showSnackbar('פיירבייס עוד לא מוכן, נסו שוב עוד רגע'); return; }
+  showSnackbar('נכנסים עם גוגל…');
+  const res=await window.fbGoogleSignIn();
+  if(res.ok){
+    try{ localStorage.setItem(DEV_MODE_KEY,'1'); }catch(e){}
+    applyDevNavVisibility(); requestAnimationFrame(positionNavIndicator);
+    showSnackbar('מצב מפתח הופעל 🛠');
+  } else if(res.reason==='wrong-account'){
+    showSnackbar('החשבון הזה לא מורשה למצב מפתח');
+  } else {
+    showSnackbar('ההתחברות בוטלה או נכשלה');
   }
 });
-function buildDevStats(){
-  let stats={};
-  try{ stats=JSON.parse(localStorage.getItem(WORD_FEEDBACK_KEY)||'{}'); }catch(e){}
+async function buildDevStats(){
+  const box=document.getElementById('devStatsList');
+  const summary=document.getElementById('devStatsSummary');
+  summary.innerHTML=''; box.innerHTML='<div class="emptyState">טוען…</div>';
+  if(!window.fbFetchWordStats){ box.innerHTML='<div class="emptyState">פיירבייס עוד לא מוכן</div>'; return; }
+  let votes;
+  try{ votes=await window.fbFetchWordStats(); }
+  catch(err){ box.innerHTML='<div class="emptyState">שגיאה בטעינת הנתונים מהשרת<br>'+(err&&err.message||'')+'</div>'; return; }
+
+  const stats={};
+  votes.forEach(v=>{
+    const e=stats[v.word] || (stats[v.word]={clue:v.clue||'', likes:0, dislikes:0});
+    if(v.liked) e.likes++; else e.dislikes++;
+    if(v.clue) e.clue=v.clue;
+  });
   const words=Object.keys(stats);
   let totalLikes=0, totalDislikes=0;
-  words.forEach(w=>{ totalLikes+=stats[w].likes||0; totalDislikes+=stats[w].dislikes||0; });
-  document.getElementById('devStatsSummary').innerHTML =
+  words.forEach(w=>{ totalLikes+=stats[w].likes; totalDislikes+=stats[w].dislikes; });
+  summary.innerHTML =
     '<div class="devStatChip"><div class="n">'+words.length+'</div><div class="l">מילים דורגו</div></div>'
     +'<div class="devStatChip"><div class="n">'+totalLikes+'</div><div class="l">לייקים 👍</div></div>'
     +'<div class="devStatChip"><div class="n">'+totalDislikes+'</div><div class="l">דיסלייקים 👎</div></div>';
 
-  const disliked=words.filter(w=>(stats[w].dislikes||0)>0).sort((a,b)=>stats[b].dislikes-stats[a].dislikes);
-  const box=document.getElementById('devStatsList'); box.innerHTML='';
+  const disliked=words.filter(w=>stats[w].dislikes>0).sort((a,b)=>stats[b].dislikes-stats[a].dislikes);
+  box.innerHTML='';
   if(disliked.length===0){
     box.innerHTML='<div class="emptyState">אין עדיין מילים שסומנו לא אהבתי ✕</div>';
     return;
@@ -1224,15 +1281,10 @@ function buildDevStats(){
     el.innerHTML =
       '<div class="devWordTop">'
         +'<div><div class="devWordName">'+w+'</div><div class="devWordClue">רמז: '+(e.clue||'—')+'</div></div>'
-        +'<div class="devWordVotes"><span class="up">👍 '+(e.likes||0)+'</span><span class="down">👎 '+(e.dislikes||0)+'</span></div>'
+        +'<div class="devWordVotes"><span class="up">👍 '+e.likes+'</span><span class="down">👎 '+e.dislikes+'</span></div>'
       +'</div>';
     box.appendChild(el);
   });
-}
-function resetWordFeedback(){
-  try{ localStorage.removeItem(WORD_FEEDBACK_KEY); }catch(e){}
-  buildDevStats();
-  showSnackbar('הסטטיסטיקות אופסו');
 }
 
 /* ================= GAME ACTIONS ================= */
