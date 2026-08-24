@@ -1251,7 +1251,12 @@ document.getElementById('appTitle').addEventListener('click', async ()=>{
   if(!window.fbGoogleSignIn){ showSnackbar('פיירבייס עוד לא מוכן, נסו שוב עוד רגע'); return; }
   try{ localStorage.setItem(DEV_SIGNIN_PENDING_KEY,'1'); }catch(e){}
   showSnackbar('מעבירים אתכם להתחברות עם גוגל…');
-  await window.fbGoogleSignIn(); // page navigates away here
+  try{
+    await window.fbGoogleSignIn(); // if this succeeds the page navigates away and nothing below runs
+  }catch(err){
+    try{ localStorage.removeItem(DEV_SIGNIN_PENDING_KEY); }catch(e){}
+    showSnackbar('שגיאה בהתחברות: ' + (err && (err.code || err.message) || 'לא ידוע'));
+  }
 });
 async function checkPendingDevSignIn(){
   let pending=false;
