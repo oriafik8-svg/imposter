@@ -563,13 +563,19 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
      script below. Exposes window.fb.{app,db,auth}, window.fbReady (resolves
      once anonymous auth completes), and a few bridge functions the classic
      script calls: fbRateWord (write a 👍/👎 vote), fbGoogleSignIn /
-     fbSignOutDev (the developer gate), fbFetchWordStats (read all votes —
-     only succeeds for the developer's own Google-authenticated account,
-     per firestore.rules). -->
+     fbCheckRedirectResult / fbSignOutDev (the developer gate), fbFetchWordStats
+     (read all votes — only succeeds for the developer's own
+     Google-authenticated account, per firestore.rules).
+
+     The developer sign-in uses signInWithRedirect, not signInWithPopup:
+     popups are routinely blocked or silently killed by mobile browsers
+     (Safari/Chrome on a phone in particular), which is exactly what showed
+     up as "the Google screen never opens" — redirect is what Firebase
+     itself recommends for mobile and it actually works there. -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
-  import { getAuth, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+  import { getAuth, signInAnonymously, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
   const DEV_EMAIL = "oriafik8@gmail.com";
 
@@ -596,17 +602,23 @@ input[type=range]::-moz-range-thumb{ width:4px; height:44px; border-radius:2px; 
   };
 
   window.fbGoogleSignIn = async () => {
+    // Navigates the whole page to Google and back — nothing after this call
+    // runs in this page instance. The result is picked up by
+    // fbCheckRedirectResult() on the next load, once redirected back.
+    await signInWithRedirect(auth, new GoogleAuthProvider());
+  };
+  window.fbCheckRedirectResult = async () => {
     try{
-      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      const result = await getRedirectResult(auth);
+      if(!result) return { pending:false };
       const email = (result.user.email || '').toLowerCase();
-      if(email === DEV_EMAIL){ return { ok:true }; }
+      if(email === DEV_EMAIL){ return { pending:true, ok:true }; }
       await signOut(auth);
       await signInAnonymously(auth); // restore normal write access for local-mode voting
-      return { ok:false, reason:'wrong-account' };
+      return { pending:true, ok:false, reason:'wrong-account' };
     }catch(err){
-      // restore anonymous session so local-mode voting keeps working even if sign-in was cancelled/failed
       try{ if(!auth.currentUser) await signInAnonymously(auth); }catch(e2){}
-      return { ok:false, reason:'error', message: err && err.message };
+      return { pending:true, ok:false, reason:'error', message: err && err.message };
     }
   };
   window.fbSignOutDev = async () => {
@@ -1212,8 +1224,11 @@ function rateCurrentWord(liked){
   showSnackbar(liked ? 'תודה! 👍' : 'תודה! 👎');
 }
 
-/* ================= DEVELOPER MODE (gated by Google sign-in, not a local toggle) ================= */
+/* ================= DEVELOPER MODE (gated by Google sign-in, not a local toggle) =================
+   Uses a redirect flow (page navigates to Google and back), not a popup — popups are routinely
+   blocked or killed by mobile browsers, redirect is what actually works on a phone. */
 const DEV_MODE_KEY='impostor_dev_mode';
+const DEV_SIGNIN_PENDING_KEY='impostor_dev_signin_pending';
 function isDevMode(){ try{ return localStorage.getItem(DEV_MODE_KEY)==='1'; }catch(e){ return false; } }
 function applyDevNavVisibility(){
   document.getElementById('devNavItem').classList.toggle('hidden', !isDevMode());
@@ -1234,8 +1249,18 @@ document.getElementById('appTitle').addEventListener('click', async ()=>{
     return;
   }
   if(!window.fbGoogleSignIn){ showSnackbar('פיירבייס עוד לא מוכן, נסו שוב עוד רגע'); return; }
-  showSnackbar('נכנסים עם גוגל…');
-  const res=await window.fbGoogleSignIn();
+  try{ localStorage.setItem(DEV_SIGNIN_PENDING_KEY,'1'); }catch(e){}
+  showSnackbar('מעבירים אתכם להתחברות עם גוגל…');
+  await window.fbGoogleSignIn(); // page navigates away here
+});
+async function checkPendingDevSignIn(){
+  let pending=false;
+  try{ pending = localStorage.getItem(DEV_SIGNIN_PENDING_KEY)==='1'; }catch(e){}
+  if(!pending) return;
+  try{ localStorage.removeItem(DEV_SIGNIN_PENDING_KEY); }catch(e){}
+  if(!window.fbCheckRedirectResult) return;
+  const res=await window.fbCheckRedirectResult();
+  if(!res.pending) return; // nothing came back — e.g. the redirect never completed
   if(res.ok){
     try{ localStorage.setItem(DEV_MODE_KEY,'1'); }catch(e){}
     applyDevNavVisibility(); requestAnimationFrame(positionNavIndicator);
@@ -1245,7 +1270,7 @@ document.getElementById('appTitle').addEventListener('click', async ()=>{
   } else {
     showSnackbar('ההתחברות בוטלה או נכשלה');
   }
-});
+}
 async function buildDevStats(){
   const box=document.getElementById('devStatsList');
   const summary=document.getElementById('devStatsSummary');
@@ -1300,6 +1325,7 @@ document.getElementById('nextBtn').onclick=nextCard;
 applyDevNavVisibility();
 positionNavIndicator();
 if(!restoreSession()) show('home');
+checkPendingDevSignIn();
 </script>
 </body>
 </html>
